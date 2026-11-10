@@ -45,49 +45,33 @@ jobs:
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
+          set -e
+          test -n "$KEYSTORE_BASE64"
           printf '%s' "$KEYSTORE_BASE64" | base64 --decode > app/android/app/hisn-alsaqr.keystore
           test -s app/android/app/hisn-alsaqr.keystore
 
       - name: Configure release signing
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
+          cat >> app/android/app/build.gradle <<'EOF'
 
-          p = Path("app/android/app/build.gradle")
-          s = p.read_text()
+          android {
+              signingConfigs {
+                  release {
+                      storeFile file("hisn-alsaqr.keystore")
+                      storeType "PKCS12"
+                      storePassword System.getenv("KEYSTORE_PASSWORD")
+                      keyAlias System.getenv("KEY_ALIAS")
+                      keyPassword System.getenv("KEY_PASSWORD")
+                  }
+              }
 
-          if "signingConfigs {" not in s:
-              match = re.search(r'(?m)^(\s*)buildTypes\s*\{', s)
-              if not match:
-                  raise SystemExit("buildTypes not found")
-
-              indent = match.group(1)
-              block = '''
-          ''' + indent + '''signingConfigs {
-          ''' + indent + '''    release {
-          ''' + indent + '''        storeFile file("hisn-alsaqr.keystore")
-          ''' + indent + '''        storeType "PKCS12"
-          ''' + indent + '''        storePassword System.getenv("KEYSTORE_PASSWORD")
-          ''' + indent + '''        keyAlias System.getenv("KEY_ALIAS")
-          ''' + indent + '''        keyPassword System.getenv("KEY_PASSWORD")
-          ''' + indent + '''    }
-          ''' + indent + '''}
-
-          '''
-              s = s[:match.start()] + block + s[match.start():]
-
-          match = re.search(r'(?m)^(\s*)release\s*\{', s)
-          if not match:
-              raise SystemExit("release build type not found")
-
-          indent = match.group(1) + "    "
-          if "signingConfig signingConfigs.release" not in s:
-              pos = match.end()
-              s = s[:pos] + "\n" + indent + "signingConfig signingConfigs.release" + s[pos:]
-
-          p.write_text(s)
-          PY
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.release
+                  }
+              }
+          }
+          EOF
 
       - name: Build signed APK
         working-directory: app/android
@@ -96,6 +80,10 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
+          set -e
+          : "${KEYSTORE_PASSWORD:?Missing KEYSTORE_PASSWORD}"
+          : "${KEY_ALIAS:?Missing KEY_ALIAS}"
+          : "${KEY_PASSWORD:?Missing KEY_PASSWORD}"
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
 
