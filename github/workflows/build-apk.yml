@@ -1,1 +1,160 @@
+ 
+name: Build Signed APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Create Android project
+        run: |
+          set -e
+          HTML="$(find . -maxdepth 1 -name '*.html' | head -1)"
+          test -n "$HTML"
+          mkdir -p app/www
+          cp "$HTML" app/www/index.html
+          cd app
+          npm init -y
+          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
+          npx cap init "حصن الصقر" com.hisn.falcon --web-dir=www
+          npx cap add android
+          npx cap sync android
+
+      - name: Prepare signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          set -e
+          test -n "$KEYSTORE_BASE64"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > app/android/app/hisn-alsaqr.keystore
+          test -s app/android/app/hisn-alsaqr.keystore
+
+      - name: Configure release signing
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          set -e
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path("app/android/app/build.gradle")
+          s = p.read_text()
+
+          for key in ("KEYSTORE_PASSWORD", "KEY_ALIAS", "KEY_PASSWORD"):
+              import os
+              if not os.environ.get(key):
+                  raise SystemExit("Missing signing secret: " + key)
+
+          bt = re.search(r'(?m)^(\s*)buildTypes\s*\{', s)
+          if not bt:
+              raise SystemExit("buildTypes block not found")
+
+          indent = bt.group(1)
+
+          if "signingConfigs {" not in s:
+              block = (
+                  indent + "signingConfigs {\n"
+                  + indent + "    release {\n"
+                  + indent + '        storeFile file("hisn-alsaqr.keystore")\n'
+                  + indent + '        storeType "PKCS12"\n'
+                  + indent + '        storePassword System.getenv("KEYSTORE_PASSWORD")\n'
+                  + indent + '        keyAlias System.getenv("KEY_ALIAS")\n'
+                  + indent + '        keyPassword System.getenv("KEY_PASSWORD")\n'
+                  + indent + "    }\n"
+                  + indent + "}\n\n"
+              )
+              s = s[:bt.start()] + block + s[bt.start():]
+
+          bt = re.search(r'(?m)^(\s*)buildTypes\s*\{', s)
+          start = bt.end()
+          depth = 1
+          pos = start
+
+          while pos < len(s) and depth:
+              if s[pos] == "{":
+                  depth += 1
+              elif s[pos] == "}":
+                  depth -= 1
+              pos += 1
+
+          if depth:
+              raise SystemExit("Invalid buildTypes braces")
+
+          section = s[start:pos - 1]
+          release = re.search(r'(?m)^(\s*)release\s*\{', section)
+
+          if not release:
+              raise SystemExit("Release build type not found")
+
+          if "signingConfig signingConfigs.release" not in section:
+              line_end = section.find("\n", release.end())
+              if line_end < 0:
+                  raise SystemExit("Release block formatting error")
+
+              signing_indent = release.group(1) + "    "
+              section = (
+                  section[:line_end + 1]
+                  + signing_indent + "signingConfig signingConfigs.release\n"
+                  + section[line_end + 1:]
+              )
+
+          s = s[:start] + section + s[pos - 1:]
+          p.write_text(s)
+          print("Release signing configured successfully")
+          PY
+
+      - name: Build signed APK
+        working-directory: app/android
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          set -e
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Rename APK
+        run: |
+          cp app/android/app/build/outputs/apk/release/app-release.apk hisn-alsaqr.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: hisn-alsaqr-apk
+          path: hisn-alsaqr.apk
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Build ${{ github.run_number }}
+          files: hisn-alsaqr.apk
 
