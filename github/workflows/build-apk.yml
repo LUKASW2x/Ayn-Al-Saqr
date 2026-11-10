@@ -1,5 +1,4 @@
- 
-name: Build Signed APK
+ name: Build Signed APK
 
 on:
   workflow_dispatch:
@@ -33,16 +32,30 @@ jobs:
       - name: Create Android project
         run: |
           set -e
-          HTML="$(find . -maxdepth 1 -name '*.html' | head -1)"
-          test -n "$HTML"
+
+          test -f index.html
+          test -f icon-background.PNG
+          test -f icon-foreground.PNG
+          test -f icon-only.PNG
+
           mkdir -p app/www
-          cp "$HTML" app/www/index.html
+          cp index.html app/www/index.html
+
           cd app
           npm init -y
           npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
+
           npx cap init "حصن الصقر" com.hisn.falcon --web-dir=www
           npx cap add android
           npx cap sync android
+
+          mkdir -p assets
+          cp ../icon-background.PNG assets/icon-background.png
+          cp ../icon-foreground.PNG assets/icon-foreground.png
+          cp ../icon-only.PNG assets/icon-only.png
+
+          npm install --save-dev @capacitor/assets
+          npx capacitor-assets generate --android
 
       - name: Prepare signing key
         env:
@@ -63,12 +76,12 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import re
+          import os
 
           p = Path("app/android/app/build.gradle")
           s = p.read_text()
 
           for key in ("KEYSTORE_PASSWORD", "KEY_ALIAS", "KEY_PASSWORD"):
-              import os
               if not os.environ.get(key):
                   raise SystemExit("Missing signing secret: " + key)
 
@@ -157,4 +170,3 @@ jobs:
           tag_name: build-${{ github.run_number }}
           name: Build ${{ github.run_number }}
           files: hisn-alsaqr.apk
-
