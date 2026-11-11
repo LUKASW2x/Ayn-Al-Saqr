@@ -1,3 +1,4 @@
+# build-apk
 name: Build Signed APK
 
 on:
@@ -71,7 +72,7 @@ jobs:
         run: |
           set -e
           npm init -y
-          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
+          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 @capacitor/app@6
           npx cap init "حصن الصقر" com.hisn.falcon --web-dir=www
           npx cap add android
           npx cap sync android
