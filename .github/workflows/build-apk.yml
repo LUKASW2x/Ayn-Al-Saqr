@@ -1,4 +1,4 @@
- name: Build Signed APK
+name: Build Signed APK
 
 on:
   workflow_dispatch:
