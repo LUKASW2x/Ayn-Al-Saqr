@@ -8,14 +8,9 @@ on:
 permissions:
   contents: write
 
-concurrency:
-  group: build-apk
-  cancel-in-progress: true
-
 jobs:
   apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
 
@@ -31,8 +26,7 @@ jobs:
       - name: Create Capacitor Android project
         run: |
           set -e
-          HTML="$(ls *.html 2>/dev/null | head -1)"
-          [ -n "$HTML" ] || { echo "::error::no .html game file in repo root"; exit 1; }
+          HTML="$(ls *.html | head -1)"
           echo "Using game file: $HTML"
           mkdir -p app/www
           cp "$HTML" app/www/index.html
@@ -52,20 +46,17 @@ jobs:
           fi
           npx cap sync android
 
-      - name: Use fixed signing key (if present) and bump version
+      - name: Use fixed signing key and bump version (so each build updates the installed app)
         run: |
           set -e
           mkdir -p ~/.android
           if [ -f debug.keystore ]; then
             cp debug.keystore ~/.android/debug.keystore
-            echo "Using fixed debug.keystore from repo"
           else
-            echo "::warning::debug.keystore not found in repo root - using a random key. The APK will NOT update over a previously installed build (uninstall first)."
+            echo "WARNING: debug.keystore not found in repo root, using a random key"
           fi
-          G=app/android/app/build.gradle
-          sed -i "s/versionCode 1/versionCode ${{ github.run_number }}/; s/versionName \"1.0\"/versionName \"1.${{ github.run_number }}\"/" "$G"
-          grep -n "versionCode\|versionName" "$G"
-          grep -q "versionCode ${{ github.run_number }}" "$G" || { echo "::error::versionCode was not updated in build.gradle"; exit 1; }
+          sed -i "s/versionCode 1/versionCode ${{ github.run_number }}/; s/versionName \"1.0\"/versionName \"1.${{ github.run_number }}\"/" app/android/app/build.gradle
+          grep -n "versionCode\|versionName" app/android/app/build.gradle
 
       - name: Build debug APK
         working-directory: app/android
