@@ -78,13 +78,30 @@ jobs:
 
       - name: Create Android project
         working-directory: app
+        env:
+          ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID }}
         run: |
           set -e
           npm init -y
-          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 @capacitor/app@6 @capacitor/haptics@6 @capacitor/status-bar@6 @capacitor/splash-screen@6
+          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 @capacitor/app@6 @capacitor/haptics@6 @capacitor/status-bar@6 @capacitor/splash-screen@6 @capacitor-community/admob@6
           npx cap init "حصن الصقر" com.hisn.falcon --web-dir=www
           node -e "const fs=require('fs');const f='capacitor.config.json';if(!fs.existsSync(f)){console.log('config json not found, skipping splash config');process.exit(0)}const c=JSON.parse(fs.readFileSync(f,'utf8'));c.plugins=c.plugins||{};c.plugins.SplashScreen={launchShowDuration:1800,launchAutoHide:true,backgroundColor:'#0b1220',androidScaleType:'CENTER_CROP',showSpinner:false};fs.writeFileSync(f,JSON.stringify(c,null,2))"
           npx cap add android
+          # AdMob: معرّف التطبيق (تجريبي من Google إن لم تضف السر ADMOB_APP_ID)
+          export ADMOB_APP_ID="${ADMOB_APP_ID:-ca-app-pub-3940256099942544~3347511713}"
+          python3 - <<'PY'
+          import os
+          m = 'android/app/src/main/AndroidManifest.xml'
+          s = open(m, encoding='utf8').read()
+          if 'com.google.android.gms.ads.APPLICATION_ID' not in s:
+              s = s.replace('</application>', '        <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="@string/admob_app_id"/>\n    </application>', 1)
+              open(m, 'w', encoding='utf8').write(s)
+          x = 'android/app/src/main/res/values/strings.xml'
+          t = open(x, encoding='utf8').read()
+          assert '</resources>' in t
+          t = t.replace('</resources>', '    <string name="admob_app_id">%s</string>\n</resources>' % os.environ['ADMOB_APP_ID'], 1)
+          open(x, 'w', encoding='utf8').write(t)
+          PY
           npx cap sync android
 
       - name: Generate icons
