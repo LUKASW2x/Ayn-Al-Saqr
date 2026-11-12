@@ -329,6 +329,24 @@ button { cursor: pointer; }
 .tech-bar i { display: block; height: 100%; background: var(--brass); }
 .card.locked { opacity: 0.55; }
 #res #hud-tech { pointer-events: auto; cursor: pointer; border-color: var(--brass); font-size: 11px; }
+
+/* ───── تعديل: قائمة التحديد مضغوطة وأزرار مربعة (لا تتداخل مع شريط الموارد) ───── */
+#hud #sel-panel { flex-direction: row; flex-wrap: wrap; align-items: stretch; align-content: flex-start; gap: 4px; padding: 6px 8px 7px; max-height: 31vh; overflow-y: auto; overscroll-behavior: contain; }
+#hud #sel-panel > .sel-head, #hud #sel-panel > .sel-lines, #hud #sel-panel > .sel-hint, #hud #sel-panel > .sel-train { flex: 0 0 100%; }
+#hud #sel-panel .sel-head strong { font-size: 14px; }
+#hud #sel-panel .sel-lines { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; font-size: 10.5px; line-height: 1.3; color: var(--sand-dim); }
+#hud #sel-panel .sel-lines > div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#hud #sel-panel .sel-lines > div.wide { grid-column: 1 / -1; white-space: normal; }
+#hud #sel-panel .sel-hint { display: none; }
+#hud #sel-panel > .btn-small { flex: 1 1 calc(33.3% - 4px); min-height: 30px; padding: 0 6px; font-size: 11px; line-height: 1.15; border-radius: 9px; white-space: normal; }
+#hud #sel-panel .sel-train { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 2px; }
+#hud #sel-panel .sel-train .btn-small { min-height: 0; }
+#hud #sel-panel .sel-train .tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; aspect-ratio: 1 / 1; padding: 3px 2px; border-radius: 10px; line-height: 1.1; }
+#hud #sel-panel .sel-train .tile i { font-style: normal; font-size: 20px; line-height: 1; }
+#hud #sel-panel .sel-train .tile b { font-size: 11px; font-weight: 700; }
+#hud #sel-panel .sel-train .tile small { font-size: 9px; opacity: 0.85; white-space: nowrap; direction: ltr; }
+#hud #sel-panel .sel-train .tile.locked small { direction: rtl; white-space: normal; text-align: center; font-size: 8.5px; }
+#hud #sel-panel .sel-train .btn-small:not(.tile) { grid-column: 1 / -1; min-height: 28px; font-size: 10.5px; }
 </style>
 <div id="app" dir="rtl" lang="ar">
 
@@ -2756,6 +2774,8 @@ button { cursor: pointer; }
     if (!detail) {   // تكبير بعيد: شارة بسيطة تميّز الدور (مربع = سيّاف، مثلث = رامٍ، بلا شارة = فلاح)
       if (u.type === 'swordsman') { ctx.fillStyle = '#eef3f9'; ctx.fillRect(u.x - r * 0.4, py - r * 0.4, r * 0.8, r * 0.8); }
       else if (u.type === 'archer') tri(ctx, u.x, py - r * 0.6, u.x + r * 0.55, py + r * 0.45, u.x - r * 0.55, py + r * 0.45, '#eef7e6');
+      else if (u.type === 'pikeman') { ctx.fillStyle = '#e8c98a'; ctx.fillRect(u.x - r * 0.12, py - r * 1.1, r * 0.24, r * 1.9); }
+      else if (u.type === 'shieldbearer') { ctx.fillStyle = '#9fb4cf'; ctx.fillRect(u.x - r * 0.6, py - r * 0.6, r * 1.2, r * 1.2); }
       else if (u.type === 'scout') { ctx.fillStyle = '#eafcff'; ctx.beginPath(); ctx.moveTo(u.x, py - r * 0.6); ctx.lineTo(u.x + r * 0.5, py); ctx.lineTo(u.x, py + r * 0.6); ctx.lineTo(u.x - r * 0.5, py); ctx.closePath(); ctx.fill(); }
       return;
     }
@@ -4972,7 +4992,7 @@ button { cursor: pointer; }
     $('sel-title').textContent = d.title;
     panel.classList.toggle('compact', d.kind === 'units');
     var host = $('sel-lines'); host.textContent = '';
-    d.lines.forEach(function (l) { var row = document.createElement('div'); row.textContent = l; host.appendChild(row); });
+    d.lines.forEach(function (l) { var row = document.createElement('div'); row.textContent = l; if (l.length > 24) row.className = 'wide'; host.appendChild(row); });
     $('sel-hint').textContent = d.hint || '';
     $('btn-demolish').hidden = !d.canDemolish;
     var mvB = $('btn-move'); mvB.hidden = !d.canMove; if (d.canMove) mvB.textContent = 'نقل المبنى (' + d.moveText + ')';
@@ -4986,9 +5006,17 @@ button { cursor: pointer; }
       this._trainFor = key; tr.textContent = '';
       if (key) d.train.forEach(function (uid) {
         var u = SF.UNITS[uid], bt = document.createElement('button');
-        bt.type = 'button'; bt.className = 'btn btn-primary btn-small';
+        bt.type = 'button'; bt.className = 'btn btn-primary btn-small tile';
         var ulk = SF.UNIT_LOCK[uid] && !self.game.world.tech[SF.UNIT_LOCK[uid]];
-        bt.textContent = ulk ? '🔒 ' + u.name + ' · يتطلب بحث «' + SF.TECH_BY[SF.UNIT_LOCK[uid]].name + '»' : 'تدريب ' + u.name + ' (' + TX.costText(u.cost) + ')';
+        var UI_IC = { swordsman: '⚔️', archer: '🏹', pikeman: '🔱', medic: '➕', shieldbearer: '🛡️', axeman: '🪓', crossbow: '🎯', knight: '🐴', horsearcher: '🏇', cannon: '💣', catapult: '🪨', peasant: '🧑‍🌾', scout: '🔭' };
+        var UI_RS = { gold: '🪙', wheat: '🌾', wood: '🪵', iron: '⛏' };
+        var cs = SF.RES.filter(function (r) { return u.cost && u.cost[r]; }).map(function (r) { return u.cost[r] + UI_RS[r]; }).join(' ');
+        var sub = ulk ? 'بحث: ' + SF.TECH_BY[SF.UNIT_LOCK[uid]].name : cs;
+        var i1 = document.createElement('i'), b1 = document.createElement('b'), s1 = document.createElement('small');
+        i1.textContent = ulk ? '🔒' : (UI_IC[uid] || '⚔️'); b1.textContent = u.name; s1.textContent = sub;
+        bt.appendChild(i1); bt.appendChild(b1); bt.appendChild(s1);
+        bt.title = ulk ? u.name + ' · يتطلب بحث «' + SF.TECH_BY[SF.UNIT_LOCK[uid]].name + '»' : 'تدريب ' + u.name + ' (' + TX.costText(u.cost) + ')';
+        if (ulk) bt.className += ' locked';
         bt.disabled = !!ulk;
         SF.tap(bt, function () { self.game.train(d.bid, uid); });
         tr.appendChild(bt);
@@ -5391,8 +5419,31 @@ button { cursor: pointer; }
   }
   // وحدات Kenney: ألوان حسب الفريق/الفصيل، مشي بحركة قفز وميلان، تنفّس عند الوقوف، واندفاع للأمام عند الضرب
   var COL = ['blue', 'red', 'gray', 'green', 'gray'], ROLE = { peasant: 'p', swordsman: 's', archer: 'a', knight: 'k', scout: 'c', pikeman: 's', shieldbearer: 's', axeman: 'c', crossbow: 'a', horsearcher: 'c', medic: 'm' },
-      SZ = { shieldbearer: 1.12, horsearcher: 1.15, axeman: 1.04 },
+      SZ = { shieldbearer: 1.3, horsearcher: 1.15, axeman: 1.06, pikeman: 0.94, swordsman: 1.04 },
       BADGE = { pikeman: '#c9a36a', shieldbearer: '#9fb4cf', axeman: '#d8573f', crossbow: '#7bbd68', horsearcher: '#e0b84a' };
+  // تراكبات ترسم فوق صورة Kenney لتفرّق السيّاف عن الرمّاح وحامل الدرع وحامل الفأس (الأصل = x للأمام، y لأعلى سالب)
+  function ovLine(c, x0, y0, x1, y1, w, col) { c.strokeStyle = col; c.lineWidth = w; c.lineCap = 'round'; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke(); c.lineCap = 'butt'; }
+  var OVL = {
+    swordsman: function (c, r, H, mv, lung) {   // ترس دائري أزرق بحافة ذهبية
+      c.fillStyle = '#3f6fb5'; c.strokeStyle = '#e0b84a'; c.lineWidth = r * 0.16; c.beginPath(); c.arc(r * 0.78, -H * 0.36, r * 0.62, 0, 6.2832); c.fill(); c.stroke();
+      c.fillStyle = '#e8eef7'; c.beginPath(); c.arc(r * 0.78, -H * 0.36, r * 0.17, 0, 6.2832); c.fill();
+    },
+    pikeman: function (c, r, H, mv, lung) {     // رمح طويل جداً يعلو الجندي بوضوح، بلا ترس
+      var x0 = r * 0.55 + lung * 0.6, y0 = -H * 0.05, x1 = r * 0.95 + lung * 1.4, y1 = -H * 1.85;
+      ovLine(c, x0, y0, x1, y1, r * 0.26, '#3b2b1c'); ovLine(c, x0, y0, x1, y1, r * 0.15, '#c98a4a');
+      c.fillStyle = '#d9e0e6'; c.strokeStyle = '#59626b'; c.lineWidth = 1; c.beginPath(); c.moveTo(x1 + r * 0.02, y1 - r * 0.9); c.lineTo(x1 + r * 0.32, y1 + r * 0.1); c.lineTo(x1 - r * 0.28, y1 + r * 0.1); c.closePath(); c.fill(); c.stroke();
+      c.fillStyle = '#c9a36a'; c.fillRect(x1 - r * 0.3, y1 + r * 0.1, r * 0.6, r * 0.22);   // شريط ذهبي تحت السنّ
+    },
+    shieldbearer: function (c, r, H, mv, lung) {   // درع برجي ضخم يغطي نصف الجسم
+      c.fillStyle = '#6f86a8'; c.strokeStyle = '#2b3a52'; c.lineWidth = r * 0.18; c.beginPath(); c.rect(r * 0.35, -H * 0.82, r * 1.25, H * 0.86); c.fill(); c.stroke();
+      c.fillStyle = '#9fb4cf'; c.fillRect(r * 0.5, -H * 0.74, r * 0.95, r * 0.28);
+      c.fillStyle = '#e0b84a'; c.beginPath(); c.arc(r * 0.97, -H * 0.4, r * 0.3, 0, 6.2832); c.fill();
+    },
+    axeman: function (c, r, H, mv, lung) {      // فأس كبير برأس أحمر
+      ovLine(c, r * 0.5, -H * 0.05, r * 1.0, -H * 0.95, r * 0.2, '#5a3b1c');
+      c.fillStyle = '#d8573f'; c.strokeStyle = '#59626b'; c.lineWidth = 1; c.beginPath(); c.moveTo(r * 1.0, -H * 0.95); c.lineTo(r * 1.75, -H * 1.1); c.lineTo(r * 1.65, -H * 0.62); c.lineTo(r * 0.95, -H * 0.72); c.closePath(); c.fill(); c.stroke();
+    }
+  };
   if (SF.drawUnit) {
     var du1 = SF.drawUnit;
     SF.drawUnit = function (ctx, u, detail, t) {
@@ -5409,6 +5460,7 @@ button { cursor: pointer; }
             ctx.translate(u.x + Math.cos(u.face) * lung, u.y + r * 0.72 - bob * r * 0.4 + Math.sin(u.face) * lung * 0.5); ctx.rotate((mv ? Math.sin(ph) * 0.11 : 0) + (lung ? 0.14 * fl : 0));
             ctx.scale(fl * (1 + 0.04 * bob), mv ? 1 - 0.04 * bob : 1 + 0.03 * Math.sin(tm * 3 + u.id));
             ctx.imageSmoothingEnabled = false; ctx.drawImage(im, bb.x, bb.y, bb.w, bb.h, -dw / 2, -H, dw, H);
+            if (OVL[u.type]) OVL[u.type](ctx, r, H, mv, lung);
             if (BADGE[u.type]) { var bs = r * 0.5; ctx.fillStyle = '#1b2230'; ctx.fillRect(-bs * 0.6, -H - bs * 1.5, bs * 1.2, bs * 1.2); ctx.fillStyle = BADGE[u.type]; ctx.fillRect(-bs * 0.4, -H - bs * 1.3, bs * 0.8, bs * 0.8); }   // شارة النوع
             ctx.restore(); return;
           }
