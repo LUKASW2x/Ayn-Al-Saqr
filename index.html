@@ -2873,7 +2873,7 @@ button { cursor: pointer; }
 
   Renderer.prototype._applyCtxState = function () {
     this.ctx.imageSmoothingEnabled = true;
-    if ('imageSmoothingQuality' in this.ctx) this.ctx.imageSmoothingQuality = 'high';
+    if ('imageSmoothingQuality' in this.ctx) this.ctx.imageSmoothingQuality = 'low';   // أداء: 'high' مكلفة جداً على كانفاس كبير ولا فرق بصرياً لأن الـ LOD يطابق الدقة
   };
 
   Renderer.prototype.setWorld = function (world) { this.cache.setWorld(world); };
@@ -7157,7 +7157,8 @@ var GAP = { sword: 0.07, arrow: 0.06, cat: 0.25, cannon: 0.18, death: 0.1, colla
     document.documentElement.setAttribute('dir', 'rtl'); document.documentElement.setAttribute('lang', 'ar');
     unlockAudio();   // موسيقى القائمة تبدأ فور فتح التطبيق (في الـ APK لا يلزم لمس الشاشة أولاً)
     document.addEventListener('visibilitychange', function () { if (!document.hidden && AC && AC.state !== 'running') unlockAudio(); });
-    app.aq = new SF.AdaptiveQuality({ startIndex: 0, budgetMs: app.settings.saver ? 40 : 24 });
+    app.aq = new SF.AdaptiveQuality({ startIndex: 3,   // أداء: البدء بدقة معقولة (سقف 2) ثم الجودة التلقائية ترفعها إن كان الجهاز قوياً
+       budgetMs: app.settings.saver ? 40 : 24 });
     app.ui = new SF.UI(app.settings, {
       onStart: startGame,
       onContinue: function () { if (app.game && app.game.state === 'play') resume(); else { var sv = loadSave(); if (sv) startGame(sv.seed, sv); } },
