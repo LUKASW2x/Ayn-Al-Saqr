@@ -7319,6 +7319,47 @@ var GAP = { sword: 0.07, arrow: 0.06, cat: 0.25, cannon: 0.18, death: 0.1, colla
     }
   };
 })(globalThis.SF = globalThis.SF || {});
+/* ===== إعلان مكافأة (AdMob): «شاهد إعلاناً لتحصل على ذهب» — يظهر في التطبيق فقط ===== */
+(function (SF) {
+  'use strict';
+  var AD = globalThis.Capacitor && globalThis.Capacitor.Plugins && globalThis.Capacitor.Plugins.AdMob;
+  var UNIT_ID = 'ca-app-pub-3940256099942544/5224354917', TESTING = true;   // معرّف تجريبي من Google ← بدّله بمعرّفك الحقيقي لاحقاً وأوقف التجريب
+  var REWARD = 100, COOLDOWN = 300000;                                       // 100 ذهب، مرة كل 5 دقائق
+  var g = null, last = 0, busy = false, inited = false, btn = null;
+  var emit0 = SF.Game.prototype.emit;
+  SF.Game.prototype.emit = function () { g = this; return emit0.apply(this, arguments); };
+  function say(m) { try { if (g) g.emit('toast', m); } catch (e) { /* تجاهل */ } }
+  function label() {
+    if (!btn) return;
+    var w = Math.ceil((COOLDOWN - (Date.now() - last)) / 1000);
+    btn.textContent = last && w > 0 ? 'الإعلان التالي بعد ' + Math.ceil(w / 60) + ' د' : 'شاهد إعلاناً: +' + REWARD + ' ذهب';
+  }
+  async function run() {
+    if (busy || !g) return;
+    if (last && Date.now() - last < COOLDOWN) { label(); say('انتظر قليلاً قبل الإعلان التالي'); return; }
+    busy = true; btn.disabled = true;
+    try {
+      if (!inited) {
+        await AD.initialize({ initializeForTesting: TESTING });
+        inited = true;
+        try { var ci = await AD.requestConsentInfo(); if (ci && ci.isConsentFormAvailable && ci.status === 'REQUIRED') await AD.showConsentForm(); } catch (e) { /* تجاهل */ }
+      }
+      await AD.prepareRewardVideoAd({ adId: UNIT_ID, isTesting: TESTING });
+      var r = await AD.showRewardVideoAd();
+      if (r && g) { g.res.gold += REWARD; g._resShown = ''; last = Date.now(); g.emit('sfx', 'coin'); say('+' + REWARD + ' ذهب، شكراً لدعمك!'); }
+    } catch (e) { say('الإعلان غير متاح الآن، حاول لاحقاً'); }
+    busy = false; btn.disabled = false; label();
+  }
+  var rs = document.getElementById('btn-resume');
+  if (AD && rs && rs.parentNode) {
+    btn = document.createElement('button');
+    btn.id = 'btn-ad'; btn.type = 'button'; btn.className = 'btn btn-ghost';
+    rs.parentNode.insertBefore(btn, rs.nextSibling);
+    label();
+    SF.tap(btn, run);
+    setInterval(label, 20000);
+  }
+})(globalThis.SF = globalThis.SF || {});
 </script>
 
 </body></html>
