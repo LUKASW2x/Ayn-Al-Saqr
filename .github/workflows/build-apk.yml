@@ -29,6 +29,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+          cache: gradle
 
       - name: Check game file and icons
         run: |
@@ -37,6 +38,15 @@ jobs:
 
           mkdir -p app/www app/assets
           cp index.html app/www/index.html
+
+          # شاشة افتتاحية (اختيارية): splash.png في جذر المستودع
+          sp="$(find . -maxdepth 1 -type f -iname 'splash.png' | head -1)"
+          if [ -n "$sp" ]; then
+            cp "$sp" app/assets/splash.png
+            cp "$sp" app/assets/splash-dark.png
+          else
+            echo "WARNING: splash.png not found, skipping splash screen"
+          fi
 
           # البحث عن الصور بغض النظر عن حالة الأحرف (png أو PNG)
           for n in icon-background icon-foreground icon-only; do
@@ -72,8 +82,9 @@ jobs:
         run: |
           set -e
           npm init -y
-          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 @capacitor/app@6
+          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 @capacitor/app@6 @capacitor/haptics@6 @capacitor/status-bar@6 @capacitor/splash-screen@6
           npx cap init "حصن الصقر" com.hisn.falcon --web-dir=www
+          node -e "const fs=require('fs');const f='capacitor.config.json';if(!fs.existsSync(f)){console.log('config json not found, skipping splash config');process.exit(0)}const c=JSON.parse(fs.readFileSync(f,'utf8'));c.plugins=c.plugins||{};c.plugins.SplashScreen={launchShowDuration:1800,launchAutoHide:true,backgroundColor:'#0b1220',androidScaleType:'CENTER_CROP',showSpinner:false};fs.writeFileSync(f,JSON.stringify(c,null,2))"
           npx cap add android
           npx cap sync android
 
