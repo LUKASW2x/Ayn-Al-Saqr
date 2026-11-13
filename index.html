@@ -413,12 +413,12 @@ button { cursor: pointer; }
     </header>
 
     <div id="res" aria-label="الموارد">
-      <div class="chip" id="res-gold"><span>ذهب</span><b>0</b><small></small></div>
-      <div class="chip" id="res-pop"><span>سكان</span><b>0</b><small></small></div>
-      <div class="chip" id="res-peasant"><span>الفلاحون</span><b>0</b><small></small></div>
-      <div class="chip" id="res-wheat"><span>قمح</span><b>0</b><small></small></div>
-      <div class="chip" id="res-wood"><span>خشب</span><b>0</b><small></small></div>
-      <div class="chip" id="res-iron"><span>حديد</span><b>0</b><small></small></div>
+      <div class="chip" id="res-gold" title="ذهب"><span aria-label="ذهب" style="font-size:15px;line-height:1">🪙</span><b>0</b><small></small></div>
+      <div class="chip" id="res-pop" title="سكان"><span aria-label="سكان" style="font-size:15px;line-height:1">👥</span><b>0</b><small></small></div>
+      <div class="chip" id="res-peasant" title="الفلاحون"><span aria-label="الفلاحون" style="font-size:15px;line-height:1">🧑‍🌾</span><b>0</b><small></small></div>
+      <div class="chip" id="res-wheat" title="قمح"><span aria-label="قمح" style="font-size:15px;line-height:1">🌾</span><b>0</b><small></small></div>
+      <div class="chip" id="res-wood" title="خشب"><span aria-label="خشب" style="font-size:15px;line-height:1">🪵</span><b>0</b><small></small></div>
+      <div class="chip" id="res-iron" title="حديد"><span aria-label="حديد" style="font-size:15px;line-height:1">⛏</span><b>0</b><small></small></div>
       <div class="chip" id="hud-obj" hidden><div class="o-h"></div><div class="o-t"></div><div class="o-p"></div></div>
       <div class="chip" id="hud-tech" role="button" hidden></div>
     </div>
@@ -487,15 +487,15 @@ button { cursor: pointer; }
           <span>الحصن</span>
         </button>
         <button id="btn-army" type="button" aria-label="تحديد كل الجيش">
-          <span style="font-size:22px;line-height:26px">⚔️</span>
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" x2="19" y1="19" y2="13"/><line x1="16" x2="20" y1="16" y2="20"/><line x1="19" x2="21" y1="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" x2="9" y1="14" y2="18"/><line x1="7" x2="4" y1="17" y2="20"/><line x1="3" x2="5" y1="19" y2="21"/></svg>
           <span>الجيش</span>
         </button>
         <button id="btn-tech" type="button" aria-label="شجرة التقنيات">
-          <span style="font-size:22px;line-height:26px">🔬</span>
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.5a2 2 0 0 1-.2.9L4.7 20.5a1 1 0 0 0 .9 1.5h12.8a1 1 0 0 0 .9-1.5L14.2 10.4a2 2 0 0 1-.2-.9V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></svg>
           <span>التقنيات</span>
         </button>
         <button id="btn-hero" type="button" aria-label="تحديد البطل">
-          <span style="font-size:22px;line-height:26px">🦅</span>
+          <span style="display:flex;line-height:0"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.3-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.8V21"/><path d="M7 18a6 6 0 0 0 3.8-10.6"/></svg></span>
           <span>البطل</span>
         </button>
       </nav>
